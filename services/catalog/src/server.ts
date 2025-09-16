@@ -2,7 +2,8 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { PrismaClient } from "@prisma/client";
 import Fastify from "fastify";
-import buildProductRoutes from "./routes/products.ts";
+import buildProductRoutes from "./routes/products.js";
+import buildSkusRoutes from "./routes/skus.js";
 
 const prisma = new PrismaClient();
 const fastify = Fastify({ logger: true });
@@ -31,6 +32,7 @@ async function main() {
   });
 
   fastify.register(buildProductRoutes(prisma));
+  fastify.register(buildSkusRoutes(prisma));
 
   fastify.listen({ port: 3000 }, (err, adr) => {
     if (err) {
