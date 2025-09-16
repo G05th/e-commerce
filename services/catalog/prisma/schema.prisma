@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum ProductStatus{
+  draft
+  published
+  archived
+}
+
+enum UserRole{
+  consumer
+  admin
+}
+model Product {
+  id String  @id @default(uuid())
+  name String
+  slug String @unique
+  shortDescription String?
+  longDescription String?
+  defaultImage String?
+  status ProductStatus @default(published)
+  metadata Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  skus  Sku[]  @relation("ProductSku")
+  categories ProductCategory[] @relation("ProductCategories")
+
+  @@index([createdAt])
+}
+
+model Sku {
+  id String @id @default(uuid())
+  productId String
+  sku String @unique
+  attribute Json?
+  barcode String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation("ProductSku", fields: [productId], references: [id], onDelete: Cascade)
+  prices Price[] @relation("SkuPrice")
+  stocks Stock[] @relation("SkuStock")
+
+  @@index([productId])
+}
+
+model Price{
+  id String @id @default(uuid())
+  skuId String
+  amount Decimal @db.Decimal(10,2)
+  currency String
+  activeFrom DateTime?
+  activeTo DateTime?
+  metadata Json?
+
+  sku Sku @relation("SkuPrice", fields: [skuId], references: [id], onDelete: Cascade)
+  @@index([skuId, activeFrom])
+
+}
+
+model Stock{
+  id String @id @default(uuid())
+  skuId String
+  quantity Int @default(0)
+  reservedQuantity Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sku Sku @relation("SkuStock", fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@index([skuId])
+}
+
+model Category{
+  id String @id @default(uuid())
+  name String
+  slug String @unique
+  products  ProductCategory[] @relation("ProductCategories")
+
+  @@index([name])
+}
+
+model ProductCategory{
+  id String @id @default(uuid())
+  productId String
+  categoryId String
+  product Product @relation("ProductCategories", fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation("ProductCategories", fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId], name: "product_category_unique")
+  @@index([categoryId])
+}
+
+model Image{
+  id String @id @default(uuid())
+  entityType String
+  entityId String
+  url String
+  alt String?
+  order Int?
+
+@@index([entityType, entityId])
+}
+
+model User{
+  id String @id @default(uuid())
+  email String @unique
+  passwordHash String
+  name String?
+  role UserRole @default(consumer)
+  isEmailVerified Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([role])
+}
